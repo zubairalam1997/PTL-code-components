@@ -65,19 +65,96 @@ class vc_n_asn(models.Model):
 #
 # ============================================================
 
+
+class VcMaster(models.Model):
+    """
+    VC Master
+
+    Stores the vehicle model corresponding
+    to a VC Number.
+
+    VC123
+        ↓
+    NEXON
+
+    Used only for displaying model
+    and joining with VC.
+    """
+
+    id = models.BigAutoField(primary_key=True)
+
+    vcnumber = models.CharField(
+        max_length=50,
+        unique=True
+    )
+
+    model = models.CharField(max_length=150)
+
+    created_at = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        db_table = "vc_master"
+
+    def __str__(self):
+        return self.vcnumber
+
+
+class EslPart(models.Model):
+    """
+    Maps one Part to one ESL.
+
+    VC is NOT stored here.
+
+    Part Number comes through VcDatabase.
+    """
+
+    id = models.BigAutoField(primary_key=True)
+
+    vc_part = models.ForeignKey(
+        VcDatabase,
+        on_delete=models.CASCADE,
+        related_name="esl_part"
+    )
+
+    rack = models.CharField(max_length=10)
+
+    sequence = models.IntegerField()
+
+    row = models.IntegerField()
+
+    side = models.CharField(max_length=10)
+
+    tag_mac = models.CharField(max_length=50)
+
+    tag_name = models.CharField(max_length=100)
+
+    tag_code = models.CharField(max_length=100)
+
+    max_quantity = models.IntegerField()
+
+    class Meta:
+        db_table = "esl_part"
+
+    def __str__(self):
+        return self.tag_mac
+
+
+
 class VcDatabase(models.Model):
 
     id = models.BigAutoField(primary_key=True)
 
-    vc_no = models.CharField(max_length=50)
+    vc_master = models.ForeignKey(
+        VcMaster,
+        on_delete=models.CASCADE,
+        related_name="parts"
+    )
 
     part_number = models.CharField(max_length=100)
 
     description = models.TextField()
 
     quantity = models.IntegerField()
-
-    mac = models.CharField(max_length=50)
 
     mapping_type = models.IntegerField()
 
@@ -91,10 +168,6 @@ class VcDatabase(models.Model):
 
     class Meta:
         db_table = "vc_database"
-
-    def __str__(self):
-        return f"{self.vc_no} - {self.part_number}"
-
 
 # ============================================================
 # ASN SCHEDULE
@@ -137,11 +210,17 @@ class AsnSchedule(models.Model):
     )
 
     # Copy of MES Information
-    vc_no = models.CharField(max_length=50)
-
-    asn_no = models.CharField(max_length=50)
-
-    model = models.CharField(max_length=150)
+        mes_record = models.ForeignKey(
+        vc_n_asn,
+        on_delete=models.PROTECT,
+        related_name="executions"
+    )
+    
+    vc_master = models.ForeignKey(
+        VcMaster,
+        on_delete=models.PROTECT,
+        related_name="executions"
+    )
 
     # Trolley Information
     trolley_code = models.CharField(max_length=50)
